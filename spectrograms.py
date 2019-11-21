@@ -3,23 +3,19 @@ import librosa
 import os, re
 
 def generate_spectrograms(in_folder, out_folder, regex):
+    os.makedirs(out_folder, exist_ok=True)
     for actor_folder in os.listdir(in_folder):
         in_path = os.path.join(in_folder, actor_folder)
-        out_path = os.path.join(out_folder, actor_folder)
-        os.makedirs(out_path, exist_ok=True)
 
         for in_file in os.listdir(in_path):
             if regex.match(in_file):
                 print(os.path.join(in_path, in_file))
 
                 signal, sr = librosa.load(os.path.join(in_path, in_file), sr =44100)
-                spectrogram = librosa.stft(signal, n_fft=512)
+                spectrogram = librosa.stft(signal, n_fft=512, hop_length=256)
+                spectrogram = np.concatenate((spectrogram.real, spectrogram.imag), axis=0)
 
-                magnitude = np.abs(spectrogram)
-                phase = np.angle(spectrogram)
-                spectrogram = np.concatenate((magnitude,phase), axis=0)
-
-                np.savetxt(os.path.join(out_path, in_file.split('.')[0] + '.txt'), spectrogram, fmt='%.6f')
+                np.savetxt(os.path.join(out_folder, in_file.split('.')[0] + '.npy'), spectrogram, fmt='%.6f')
 
 def ravdess():
     in_folder = 'ravdess-emotional-speech-audio'
