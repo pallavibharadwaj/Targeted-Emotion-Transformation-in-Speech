@@ -15,7 +15,7 @@ def generate_spectrograms(in_folder, out_folder, regex):
                 spectrogram = librosa.stft(signal, n_fft=512, hop_length=256)
                 spectrogram = np.concatenate((spectrogram.real, spectrogram.imag), axis=0)
 
-                np.savetxt(os.path.join(out_folder, in_file.split('.')[0] + '.npy'), spectrogram, fmt='%.6f')
+                np.save(os.path.join(out_folder, in_file.split('.')[0] + '.npy'), spectrogram)
 
 def ravdess():
     in_folder = 'ravdess-emotional-speech-audio'
