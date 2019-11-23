@@ -1,5 +1,6 @@
+from keras import backend as k
 from keras.models import Model
-from keras.layers import Dense, Dropout, LSTM
+from keras.layers import Dense, Dropout, LSTM, Conv2D, MaxPooling2D, Flatten, Reshape, LeakyReLU
 from keras.utils import to_categorical
 from keras.models import Sequential
 from keras.callbacks import callbacks
@@ -22,7 +23,7 @@ def prep_data(in_folder):
     for in_file in os.listdir(in_folder):
         spect_file = os.path.join(in_folder, in_file)
         
-        features = np.loadtxt(spect_file)
+        features = np.load(spect_file)
         labels.append(int(spect_file.split('-')[2]))
 
         # finding with max length
@@ -37,30 +38,30 @@ def prep_data(in_folder):
     return (train_data, np.array(labels))
 
 def train_discriminator(X_train, Y_train):
-    model_lstm = Sequential()
+    model = Sequential()
 
-    model_lstm.add(LSTM(514, input_shape = (MAXLEN, 514), activation = 'relu'))
-    model_lstm.add(Dropout(0.3))
+    print(k.image_data_format())
+    X_train = X_train.reshape(1440, MAXLEN, 514, 1)
 
-    model_lstm.add(Dense(256, activation = 'relu'))
-    model_lstm.add(Dropout(0.1))
+    model.add(Conv2D(32, kernel_size=(3,3), input_shape = (MAXLEN, 514, 1), padding='same'))
+    model.add(LeakyReLU(alpha=0.005))
+    model.add(MaxPooling2D(pool_size=(4,4)))
 
-    model_lstm.add(Dense(128, activation = 'relu'))
-    model_lstm.add(Dropout(0.1))
+    model.add(Conv2D(32, kernel_size=(3,3), padding='same'))
+    model.add(LeakyReLU(alpha=0.005))
+    model.add(MaxPooling2D(pool_size=(4,4)))
 
-    model_lstm.add(Dense(64, activation = 'relu'))
-    model_lstm.add(Dropout(0.1))
+    model.add(Conv2D(16, kernel_size=(3,3), padding='same'))
+    model.add(LeakyReLU(alpha=0.005))
+    model.add(MaxPooling2D(pool_size=(4,4)))
 
-    model_lstm.add(Dense(32, activation = 'relu'))
-    model_lstm.add(Dropout(0.1))
+    model.add(Flatten())
+    model.add(Dense(9, activation = 'softmax'))
 
-    model_lstm.add(Dense(16, activation = 'relu'))
-    model_lstm.add(Dropout(0.1))
+    model.summary()
+    sgd = optimizers.SGD(lr=0.005)
 
-    model_lstm.add(Dense(9, activation = 'softmax'))
-    sgd = optimizers.SGD(lr=0.01)
-
-    model_lstm.compile(
+    model.compile(
         loss='categorical_crossentropy',
         optimizer=sgd,
         metrics=['accuracy']
@@ -69,13 +70,13 @@ def train_discriminator(X_train, Y_train):
     mcp_save = callbacks.ModelCheckpoint('bestmodel.hdf5', save_best_only=True, monitor='val_loss', mode='min')
     reduce_lr_loss = callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=10, verbose=1, epsilon=1e-4, mode='min')
 
-    history = model_lstm.fit(
+    history = model.fit(
         X_train,
         Y_train,
-        callbacks=[earlyStopping, mcp_save, reduce_lr_loss],
+        callbacks=[mcp_save, reduce_lr_loss],
         validation_split = 0.1,
-        epochs = 200,
-        batch_size = 32
+        epochs = 300,
+        batch_size = 16
     )
 
 def main():
