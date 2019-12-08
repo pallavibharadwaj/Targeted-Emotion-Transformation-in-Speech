@@ -125,84 +125,85 @@ def train(num_epochs=200, batch_size=50, validation_split=0.1, lr_discriminator=
     batch_stats.write('Epoch,G_Loss,G_Acc\n')
     batch_stats.close()
 
-    for epoch in range(2, num_epochs):
-        d_loss_1 = []
-        d_loss_2 = []
+    for epoch in range(num_epochs):
+        if epoch % 5 == 0:
+            d_loss_1 = []
+            d_loss_2 = []
 
-        # discriminator.trainable = True
-        # discriminator.compile(
-        #     loss='kld',
-        #     optimizer='adam',
-        #     metrics=['accuracy']
-        # )
+            # discriminator.trainable = True
+            # discriminator.compile(
+            #     loss='kld',
+            #     optimizer='adam',
+            #     metrics=['accuracy']
+            # )
 
-        batch_count = data.shape[0] // batch_size
+            batch_count = data.shape[0] // batch_size
 
-        # enumerate batches over the training set
-        for batch_index in range(batch_count):
-            avg_d_loss1 = 0.0
-            avg_d_loss2 = 0.0
+            # enumerate batches over the training set
+            for batch_index in range(batch_count):
+                avg_d_loss1 = 0.0
+                avg_d_loss2 = 0.0
 
-            start = batch_index * batch_size
+                start = batch_index * batch_size
 
-            if batch_index < batch_count - 1:
-                batch_x = data[start:(start + batch_size), :, :]
-                batch_labels = labels[start:(start + batch_size)]
-                half_batch = int(batch_size / 2)
-            else:
-                batch_x = data[start:, :, :]
-                batch_labels = labels[start:]
-                half_batch = (data.shape[0] - start) // 2
+                if batch_index < batch_count - 1:
+                    batch_x = data[start:(start + batch_size), :, :]
+                    batch_labels = labels[start:(start + batch_size)]
+                    half_batch = int(batch_size / 2)
+                else:
+                    batch_x = data[start:, :, :]
+                    batch_labels = labels[start:]
+                    half_batch = (data.shape[0] - start) // 2
 
-            print(half_batch)
+                print(half_batch)
 
-            x_real = batch_x[:half_batch, :, :]
-            labels_real = batch_labels[:half_batch]
+                x_real = batch_x[:half_batch, :, :]
+                labels_real = batch_labels[:half_batch]
 
-            for y in range(time_block_count):
-                Y = np.repeat(y, x_real.shape[0]).reshape(-1, 1)
-                for x in range(feature_block_count):
-                    start_y = y * 64
-                    start_x = x * 64
-                    X = np.repeat(x, x_real.shape[0]).reshape(-1, 1)
-                    d_loss1, _ = discriminator.train_on_batch([x_real[:, start_y:(start_y + 64), start_x:(start_x + 64)], Y, X], to_categorical(labels_real, num_classes=9))
-                    # generate 'fake' examples
-                    x_fake, labels_fake = generate_fake_samples(batch_x[half_batch:, start_y:(start_y + 64), start_x:(start_x + 64)], batch_labels[half_batch:], Y, X, generator)
-                    # update discriminator model weights
-                    d_loss2, _ = discriminator.train_on_batch([x_fake, Y, X], to_categorical(labels_fake, num_classes=9))
-                    # summarize loss on this batch
-                    avg_d_loss1 += (d_loss1 * x_real.shape[0])
-                    avg_d_loss2 += (d_loss2 * x_fake.shape[0])
-                   
-                    print(y, x)
-            print('Epoch %d, Batch %d/%d, d1=%.3f, d2=%.3f' %
-                (epoch+1, batch_index+1, batch_count, avg_d_loss1 / (half_batch * time_block_count * feature_block_count), \
-                avg_d_loss2 / (half_batch * time_block_count * feature_block_count))) #avg_g_loss/ sample_count, accuracy
+                for y in range(time_block_count):
+                    Y = np.repeat(y, x_real.shape[0]).reshape(-1, 1)
+                    for x in range(feature_block_count):
+                        start_y = y * 64
+                        start_x = x * 64
+                        X = np.repeat(x, x_real.shape[0]).reshape(-1, 1)
+                        d_loss1, _ = discriminator.train_on_batch([x_real[:, start_y:(start_y + 64), start_x:(start_x + 64)], Y, X], to_categorical(labels_real, num_classes=9))
+                        # generate 'fake' examples
+                        x_fake, labels_fake = generate_fake_samples(batch_x[half_batch:, start_y:(start_y + 64), start_x:(start_x + 64)], batch_labels[half_batch:], Y, X, generator)
+                        # update discriminator model weights
+                        d_loss2, _ = discriminator.train_on_batch([x_fake, Y, X], to_categorical(labels_fake, num_classes=9))
+                        # summarize loss on this batch
+                        avg_d_loss1 += (d_loss1 * x_real.shape[0])
+                        avg_d_loss2 += (d_loss2 * x_fake.shape[0])
+                       
+                        print(y, x)
+                print('Epoch %d, Batch %d/%d, d1=%.3f, d2=%.3f' %
+                    (epoch+1, batch_index+1, batch_count, avg_d_loss1 / (half_batch * time_block_count * feature_block_count), \
+                    avg_d_loss2 / (half_batch * time_block_count * feature_block_count))) #avg_g_loss/ sample_count, accuracy
 
-            d_loss_1.append(avg_d_loss1 / (x_real.shape[0] * time_block_count * feature_block_count)) 
-            d_loss_2.append(avg_d_loss2 / (x_fake.shape[0] * time_block_count * feature_block_count))
+                d_loss_1.append(avg_d_loss1 / (x_real.shape[0] * time_block_count * feature_block_count)) 
+                d_loss_2.append(avg_d_loss2 / (x_fake.shape[0] * time_block_count * feature_block_count))
 
-        # save the generator model
-        dloss1 = sum(d_loss_1) / len(d_loss_1)
-        dloss2 = sum(d_loss_2) / len(d_loss_2)
+            # save the generator model
+            dloss1 = sum(d_loss_1) / len(d_loss_1)
+            dloss2 = sum(d_loss_2) / len(d_loss_2)
 
-        train_stats = open('Discriminator_stats.csv', 'a')
-        train_stats.write('%d,%.6f,%.6f\n'%(epoch + 1, dloss1, dloss2))
-        train_stats.close()
+            train_stats = open('Discriminator_stats.csv', 'a')
+            train_stats.write('%d,%.6f,%.6f\n'%(epoch + 1, dloss1, dloss2))
+            train_stats.close()
 
-        # if epoch == 0:
-        #     min_d_loss_1 = dloss1
-        #     discriminator.save('discriminator_loss1.h5')
-        #     discriminator.save('discriminator_loss2.h5')
-        # else:
-        #     if min_d_loss_1 >= dloss1:
-        #         min_d_loss_1 = dloss1
-        #         discriminator.save('discriminator_loss1.h5')
+            # if epoch == 0:
+            #     min_d_loss_1 = dloss1
+            #     discriminator.save('discriminator_loss1.h5')
+            #     discriminator.save('discriminator_loss2.h5')
+            # else:
+            #     if min_d_loss_1 >= dloss1:
+            #         min_d_loss_1 = dloss1
+            #         discriminator.save('discriminator_loss1.h5')
 
-        #     if min_d_loss_2 >= dloss2:
-        #         min_d_loss_2 = dloss2
-        #         discriminator.save('discriminator_loss2.h5')
-        discriminator.save_weights('discriminator/discriminator_epoch_%d.h5'%(epoch + 1))
+            #     if min_d_loss_2 >= dloss2:
+            #         min_d_loss_2 = dloss2
+            #         discriminator.save('discriminator_loss2.h5')
+            discriminator.save_weights('discriminator/discriminator_epoch_%d.h5'%(epoch + 1))
 
         triplets = generate_triplets(data, labels)
         np.random.shuffle(triplets)
