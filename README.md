@@ -1,2 +1,2 @@
-# Targeted Emotiona Transformation in Speech
+# Targeted Emotion Transformation in Speech
 
