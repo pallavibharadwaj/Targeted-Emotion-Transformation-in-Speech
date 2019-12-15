@@ -2,7 +2,8 @@ import numpy as np
 import librosa
 import os, re
  
-MAXLEN = 0
+TIMESTEP_LEN = 0
+FEATURE_LEN = 514
 
 emotions = {
     'n': '01',
@@ -22,15 +23,14 @@ def generate_spectrograms(in_folder, out_folder, regex, prefix=0):
 
         for in_file in os.listdir(in_path):
             if regex.match(in_file):
-                print("writing : ", os.path.join(in_path, in_file))
+                print(os.path.join(in_path, in_file))
 
                 signal, sr = librosa.load(os.path.join(in_path, in_file), sr =44100)
                 spectrogram = librosa.stft(signal, n_fft=512, hop_length=256)
                 spectrogram = np.concatenate((spectrogram.real, spectrogram.imag), axis=0)
 
                 # pad to longest audio
-                spectrogram = np.pad(spectrogram, ((0,62), (0, MAXLEN-spectrogram.shape[1])), 'constant').transpose()
-                print(spectrogram.shape)
+                spectrogram = np.pad(spectrogram, ((0, FEATURE_LEN-spectrogram.shape[0]), (0, TIMESTEP_LEN-spectrogram.shape[1])), 'constant').transpose()
 
                 filename = in_file.split('.')[0]    # ravdess
                 if(prefix):     # savee
@@ -44,17 +44,18 @@ def max_len(datasets):
         for actor_folder in os.listdir(dataset):
             in_path = os.path.join(dataset, actor_folder)
             for in_file in os.listdir(in_path):
-                print("LEN : ", os.path.join(in_path, in_file))
                 signal, sr = librosa.load(os.path.join(in_path, in_file), sr =44100)
                 spectrogram = librosa.stft(signal, n_fft=512, hop_length=256)
 
                 # finding with max length
-                global MAXLEN
-                if(MAXLEN < spectrogram.shape[1]):
-                    MAXLEN = spectrogram.shape[1]
+                global TIMESTEP_LEN
+                if(TIMESTEP_LEN < spectrogram.shape[1]):
+                    TIMESTEP_LEN = spectrogram.shape[1]
 
-    pad = 64 - (MAXLEN % 64)
-    MAXLEN += pad
+    # timesteps and frequencies padded to multiple of 64
+    TIMESTEP_LEN += 64-(TIMESTEP_LEN % 64)
+    global FEATURE_LEN
+    FEATURE_LEN += 64-(FEATURE_LEN % 64)
 
 def ravdess():
      in_folder = 'ravdess-emotional-speech-audio'
@@ -73,7 +74,6 @@ def main():
     max_len(datasets)
     ravdess()
     savee()
-    print("Max Length : ", MAXLEN)
 
 if __name__=='__main__':
     main()
