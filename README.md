@@ -5,7 +5,7 @@
 Required dependencies and packages:
 
 ```
-conda env create -f requirements.yml
+conda env create -f environment.yml
 source activate speech_emotion_transformation
 ```
 
