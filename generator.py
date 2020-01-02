@@ -4,13 +4,14 @@ from keras.backend import squeeze
 from keras.optimizers import SGD, Adam
 from keras.layers import Conv2D, UpSampling2D, MaxPooling2D, BatchNormalization, Activation, LeakyReLU, Lambda, Embedding, Dense, add, concatenate, Reshape, ZeroPadding2D, Cropping2D
 
+## creates an down-sampling residual block of U-Net
+## x: input to the residual block
+## nb_channels: number of channels in the output of the block
 def downsampling_res_block(x, nb_channels):
     res_path = BatchNormalization()(x)
-    # res_path = LeakyReLU(alpha=0.2)(res_path)#Activation(activation='relu')(res_path)
     res_path = Conv2D(filters=nb_channels, kernel_size=(5, 3), padding='same')(res_path)
     res_path = MaxPooling2D(pool_size=(2, 2))(res_path)
     res_path = BatchNormalization()(res_path)
-    # res_path = LeakyReLU(alpha=0.2)(res_path)#Activation(activation='relu')(res_path)
     res_path = Conv2D(filters=nb_channels, kernel_size=(5, 3), padding='same')(res_path)
 
     shortcut = Conv2D(nb_channels, kernel_size=(1, 1))(x)
@@ -20,14 +21,16 @@ def downsampling_res_block(x, nb_channels):
     res_path = add([shortcut, res_path])
     return res_path
 
+## creates an up-sampling residual block of U-Net
+## x: input to the residual block
+## nb_channels: number of channels in the output of the block
+## branch: brancg from the corresponding down-sampling residual block
 def upsampling_res_block(x, nb_channels, branch):
 	x = UpSampling2D(size=(2, 2))(x)
 	upsampled = concatenate([x, branch], axis=3)
 	res_path = BatchNormalization()(upsampled)
-	# res_path = LeakyReLU(alpha=0.2)(res_path)#Activation(activation='relu')(res_path)
 	res_path = Conv2D(filters=nb_channels, kernel_size=(5, 3), padding='same')(res_path)
 	res_path = BatchNormalization()(res_path)
-	# res_path = LeakyReLU(alpha=0.2)(res_path)#Activation(activation='relu')(res_path)
 	res_path = Conv2D(filters=nb_channels, kernel_size=(5, 3), padding='same')(res_path)
 
 	shortcut = Conv2D(nb_channels, kernel_size=(1, 1))(upsampled)
@@ -44,17 +47,6 @@ def build_generator(time_steps, features_size, time_block_count, features_block_
 	spectrogram = Input(shape=(time_steps, features_size))
 	## Reshape to 4D tensor
 	x = Reshape((time_steps, features_size, 1))(spectrogram)
-	# tcn_input = LeakyReLU(alpha=0.2)(tcn_input)
-	## Padding layer
-	## Changing dimensions to multiple of 16, since it is downsampled 4 times by a factor of 2
-	# pad_size_ht = 16 - (time_steps % 16)
-	# pad_size_wd = 16 - (features_size % 16)
-	# top_pad = 0
-	# bottom_pad = pad_size_ht - top_pad
-	# left_pad = 0
-	# right_pad = pad_size_wd - left_pad
-
-	# padded = ZeroPadding2D(padding=((top_pad, bottom_pad), (left_pad, right_pad)))(x)
 
 	## Embedding should be of size current_height * current_width
 	required_size = time_steps * features_size
@@ -78,7 +70,6 @@ def build_generator(time_steps, features_size, time_block_count, features_block_
 	## encoder
 	u_path = Conv2D(filters=64, kernel_size=(5, 3), padding='same')(x)
 	u_path = BatchNormalization()(u_path)
-	# u_path = LeakyReLU(alpha=0.2)(u_path)#Activation(activation='relu')(u_path)
 
 	u_path = Conv2D(filters=64, kernel_size=(5, 3), padding='same')(u_path)
 
@@ -96,9 +87,6 @@ def build_generator(time_steps, features_size, time_block_count, features_block_
 
 	## bridge
 	u_path = downsampling_res_block(u_path, 512)
-	# branch4 = u_path
-
-	# u_path = downsampling_res_block(u_path, 1024)
 
 	## gets [batch_size, current_height, current_width, current_channel]
 	current_shape = u_path.get_shape().as_list()
@@ -115,8 +103,6 @@ def build_generator(time_steps, features_size, time_block_count, features_block_
 	u_path = concatenate([u_path, target_channel], axis=3)
 
 	## decoder
-	# u_path = upsampling_res_block(u_path, 512, branch4)
-
 	u_path = upsampling_res_block(u_path, 256, branch3)
 
 	u_path = upsampling_res_block(u_path, 128, branch2)
@@ -124,8 +110,6 @@ def build_generator(time_steps, features_size, time_block_count, features_block_
 	u_path = upsampling_res_block(u_path, 64, branch1)
 
 	u_path = Conv2D(filters=1, kernel_size=(1, 1), activation='linear')(u_path)
-
-	# u_path = Cropping2D(cropping=((top_pad, bottom_pad), (left_pad, right_pad)))(u_path)
 
 	output = Lambda(lambda x: squeeze(x, axis=3))(u_path)
 
