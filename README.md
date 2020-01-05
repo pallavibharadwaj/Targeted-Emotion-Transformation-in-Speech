@@ -8,12 +8,12 @@ We used the [RAVDESS](https://www.kaggle.com/uwrfkaggler/ravdess-emotional-speec
 
 ### Conditional GAN ###
 We used a conditional GAN to transform the emotion in a given speech sample to a given 'target' emotion, specified by the target label that is provided to the generator.
-Along with the label for the target emotion, The generator is fed the input speech signal in the form of a spectrogram, generated using Short-Time Fourier Transform (STFT). The generator outputs a spectrogram for the input speech signal with the transformed emotional component.
+Along with the label for the target emotion, the generator is fed the input speech signal in the form of a spectrogram, generated using Short-Time Fourier Transform (STFT). The generator outputs a spectrogram for the input speech signal with the transformed emotional component.
 
 ### Discriminator Models ###
 The discriminator objectives are:
-- To correctly label real speech signals which are coming from the training dataset as ’real’.
-- To correctly label generated images that are coming from the generator as ’fake’.
+- To correctly label spectrograms of speech samples which are coming from the training dataset as ’real’.
+- To correctly label generated spectrograms that are coming from the generator as ’fake’.
 
 We experimented with three different neural network architectures for the discriminator:
 - Temporal Convolutional Network(TCN)
