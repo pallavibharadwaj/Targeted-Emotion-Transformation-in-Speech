@@ -14,10 +14,12 @@ Along with the label for the target emotion, The generator is fed the input spee
 The discriminator objectives are:
 - To correctly label real speech signals which are coming from the training dataset as ’real’.
 - To correctly label generated images that are coming from the generator as ’fake’.
+
 We experimented with three different neural network architectures for the discriminator:
 - Temporal Convolutional Network(TCN)
 - Long Short-Term Memory Network(LSTM)
 - Convolutional Neural Network.
+
 On training each of these model architectures for over 300 epochs, the loss was recorded to be the lowest for the convolutional network.
 
 ### How to Run ###
