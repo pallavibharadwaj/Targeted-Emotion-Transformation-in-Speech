@@ -1,5 +1,5 @@
 from generator import build_generator
-from discriminator import build_discriminator, prep_data
+from discriminator import build_discriminator, load_data
 from keras.layers import Reshape, Lambda
 from keras.models import Model, load_model
 from keras.optimizers import SGD, Adam
@@ -70,7 +70,7 @@ def generate_fake_samples(x, labels, Y, X, generator):
 
 ## train the generator and discriminator
 def train(num_epochs=200, batch_size=50, block_size=64):
-    data, labels = prep_data(['spectrograms/ravdess', 'spectrograms/savee'])
+    data, labels = load_data(['spectrograms/ravdess', 'spectrograms/savee'])
 
     time_steps = data.shape[1]
     features_size = data.shape[2]
